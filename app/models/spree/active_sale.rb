@@ -13,6 +13,7 @@ module Spree
 
     before_save :have_valid_position
     after_save :set_root
+    belongs_to :eventable, :polymorphic => true
 
     default_scope :order => "#{self.table_name}.position"
 
