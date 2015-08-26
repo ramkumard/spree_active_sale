@@ -40,7 +40,7 @@
           <% @active_sale.root.children_sorted_by_position.each_with_index do |event,i| %>
             {
               "attr" :
-              { "id" : "<%= event.id %>", "parent_id" : "<%= event.parent_id %>" },
+              { "id" : "<%= event.id %>", "parent_id" : "<%= event.parent_id %>", "level" : "<%= event.ancestors.count %>" },
               "data" : "<%= escape_javascript(raw(event_js_data(event))) %>"
               <% unless event.children.empty? %>
                 ,"state" : "closed"

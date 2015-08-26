@@ -21,31 +21,31 @@ module Spree
       def update_events
         @active_sale_event.update_attributes(params[:active_sale_event])
         respond_with(@active_sale_event)
-    end
-    
-          def sort_sales
-          @active_sale_event = Spree::ActiveSaleEvent.find(params[:id])
-          @sales=@active_sale_event.children.select { |f| f  if f.live? && f.is_active? && !f.is_hidden?}.sort_by{|e| e[:position]|| 0} if @active_sale_event.present?
       end
-      
-      
+
+      def sort_sales
+        @active_sale_event = Spree::ActiveSaleEvent.find(params[:id])
+        @sales=@active_sale_event.descendants.select { |f| f  if f.live? && f.is_active? && !f.is_hidden? && f.leaf?}.sort_by{|e| e["position_#{params['level']}".to_sym]|| 0} if @active_sale_event.present?
+      end
+
+
       def sort_update_sales
-          @active_sale_event = Spree::ActiveSaleEvent.find(params[:id])
-          @sales=@active_sale_event.children.select { |f| f  if f.live? && f.is_active? && !f.is_hidden?}.sort_by{|e| e[:position] || 0} if @active_sale_event.present?
-          sale_ids_positions = params[:sale_positions].split(",").reject(&:blank?).map(&:to_i)
-          sale_ids_positions.each_with_index do |id, index|
+        @active_sale_event = Spree::ActiveSaleEvent.find(params[:id])
+        @sales=@active_sale_event.descendants.select { |f| f  if f.live? && f.is_active? && !f.is_hidden? && f.leaf?}.sort_by{|e| e["position_#{params['level']}".to_sym] || 0} if @active_sale_event.present?
+        sale_ids_positions = params[:sale_positions].split(",").reject(&:blank?).map(&:to_i)
+        sale_ids_positions.each_with_index do |id, index|
           sales = @sales.detect{|p| p.id == id }
-          sales.update_attributes(:position => index) unless sales.nil?
+          sales.update_attributes("position_#{params['level']}".to_sym => index) unless sales.nil?
         end
-        redirect_to sort_sales_path(params[:active_sale_id], @active_sale_event.id), :notice => t(:sort_products_taxons_update_message)
+        redirect_to sort_sales_path(params[:active_sale_id], @active_sale_event.id)+"?level="+params['level']+"&parent_id="+params['parent_id'] , :notice => t(:sort_products_taxons_update_message)
       end
 
       def designer_sort_update_sales
-          @taxon = Spree::Taxon.find_by_name('designers')
-          @active_sale_event = @taxon.active_sale_events.first
-          puts @sales = Spree::ActiveSaleEvent.live_active_and_hidden(:hidden => false).where(:is_designer => true).order( 'start_date DESC' ).sort_by{|e| e[:designer_position] || 0}
-          sale_ids_positions = params[:sale_positions].split(",").reject(&:blank?).map(&:to_i)
-          sale_ids_positions.each_with_index do |id, index|
+        @taxon = Spree::Taxon.find_by_name('designers')
+        @active_sale_event = @taxon.active_sale_events.first
+        puts @sales = Spree::ActiveSaleEvent.live_active_and_hidden(:hidden => false).where(:is_designer => true).order( 'start_date DESC' ).sort_by{|e| e[:designer_position] || 0}
+        sale_ids_positions = params[:sale_positions].split(",").reject(&:blank?).map(&:to_i)
+        sale_ids_positions.each_with_index do |id, index|
           sales = @sales.detect{|p| p.id == id }
           sales.update_attributes(:designer_position => index) unless sales.nil?
         end
@@ -53,9 +53,10 @@ module Spree
       end
 
       private
-        def location_after_save
-          edit_admin_active_sale_active_sale_event_url(@active_sale_event.active_sale, @active_sale_event, :parent_id => @active_sale_event.parent_id)
-        end
+      
+      def location_after_save
+        edit_admin_active_sale_active_sale_event_url(@active_sale_event.active_sale, @active_sale_event, :parent_id => @active_sale_event.parent_id)
+      end
 
       def featured_sale
         active_sale_event = Spree::ActiveSaleEvent.find(params[:sale_id]) rescue nil
@@ -73,45 +74,45 @@ module Spree
 
       protected
 
-        def collection
-          return @collection if @collection.present?
-          @search = Spree::ActiveSaleEvent.where(:active_sale_id => params[:active_sale_id]).ransack(params[:q])
-          @collection = @search.result.page(params[:page]).per(Spree::ActiveSaleConfig[:admin_active_sale_events_per_page])
-        end
+      def collection
+        return @collection if @collection.present?
+        @search = Spree::ActiveSaleEvent.where(:active_sale_id => params[:active_sale_id]).ransack(params[:q])
+        @collection = @search.result.page(params[:page]).per(Spree::ActiveSaleConfig[:admin_active_sale_events_per_page])
+      end
 
-        def load_active_sale
-          @active_sale = Spree::ActiveSale.find(params[:active_sale_id])
-        end
+      def load_active_sale
+        @active_sale = Spree::ActiveSale.find(params[:active_sale_id])
+      end
 
-        def build_resource
-          get_eventable unless params[object_name].nil?
-          if parent_data.present?
-            parent.send(controller_name).build(params[object_name])
-          else
-            model_class.new(params[object_name])
-          end
+      def build_resource
+        get_eventable unless params[object_name].nil?
+        if parent_data.present?
+          parent.send(controller_name).build(params[object_name])
+        else
+          model_class.new(params[object_name])
         end
+      end
 
-        def get_eventable
-          object_name = params[:active_sale_event]
-          @active_sale_event.update_attributes(:position=>-1) if params[:active_sale_event]['is_position']=="1"
-          get_eventable_object(object_name)
-        end
+      def get_eventable
+        object_name = params[:active_sale_event]
+        @active_sale_event.update_attributes(:position=>-1) if params[:active_sale_event]['is_position']=="1"
+        get_eventable_object(object_name)
+      end
 
-        def parent_id_for_event
-          params[:parent_id] ||= check_active_sale_event_params
-          @parent_id = params[:parent_id]
-          if @parent_id.blank?
-            redirect_to edit_admin_active_sale_path(params[:active_sale_id]), :notice => I18n.t('spree.active_sale.event.parent_id_cant_be_nil')
-          end
+      def parent_id_for_event
+        params[:parent_id] ||= check_active_sale_event_params
+        @parent_id = params[:parent_id]
+        if @parent_id.blank?
+          redirect_to edit_admin_active_sale_path(params[:active_sale_id]), :notice => I18n.t('spree.active_sale.event.parent_id_cant_be_nil')
         end
+      end
 
-        def check_active_sale_event_params(event = params[:active_sale_event])
-          return nil if event.nil?
-          parent_id = event[:parent_id]
-          event.delete(:parent_id) if event[:parent_id].nil? || event[:parent_id] == "nil"
-          parent_id
-        end
+      def check_active_sale_event_params(event = params[:active_sale_event])
+        return nil if event.nil?
+        parent_id = event[:parent_id]
+        event.delete(:parent_id) if event[:parent_id].nil? || event[:parent_id] == "nil"
+        parent_id
+      end
     end
   end
 end

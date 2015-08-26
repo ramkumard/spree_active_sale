@@ -91,6 +91,7 @@ $(document).ready(function(){
       },
       "contextmenu" : {
         "items" : function(obj) {
+          console.log(obj);
           var id_of_node = obj.attr("id");
           var type_of_node = obj.attr("rel");
           var menu = {};
@@ -110,6 +111,11 @@ $(document).ready(function(){
                 "separator_before" : true,
                 "label"            : "<i class='icon-edit'></i> " + Spree.translations.edit,
                 "action"           : function (obj) { window.location = base_url + obj.attr("id") + "/edit/" + "?parent_id=" + obj.attr("parent_id"); }
+              },
+              "sort" : {
+                "separator_before" : true,
+                "label"            : "<i class='icon-th'></i> " + "Sort",
+                "action"           : function (obj) { window.location = base_url + obj.attr("id") + "/sort/" + "?parent_id=" + obj.attr("parent_id")+"&level=" + obj.attr("level"); }
               }
             }
           } else {
@@ -136,7 +142,7 @@ $(document).ready(function(){
               "sort" : {
                 "separator_before" : true,
                 "label"            : "<i class='icon-th'></i> " + "Sort",
-                "action"           : function (obj) { window.location = base_url + obj.attr("id") + "/sort/" + "?parent_id=" + obj.attr("parent_id"); }
+                "action"           : function (obj) { window.location = base_url + obj.attr("id") + "/sort/" + "?parent_id=" + obj.attr("parent_id")+"&level=" + obj.attr("level"); }
               }
             }
           }

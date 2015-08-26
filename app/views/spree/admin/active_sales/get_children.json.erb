@@ -1,6 +1,6 @@
 [<% @active_sale_events.each_with_index do |t,i| %>
   { "attr" :
-    { "id" : "<%= t.id %>", "parent_id" : "<%= t.parent_id %>" },
+    { "id" : "<%= t.id %>", "parent_id" : "<%= t.parent_id %>", "level" : "<%= t.ancestors.count + 1%>" },
     "data" : "<%= raw(event_js_data(t)) %>"
     <% unless t.children.empty? %>
       ,"state" : "closed"
